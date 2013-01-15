@@ -1,1 +1,8 @@
 *.[oa]
+*.pyc
+/ns-3.16/build/
+ns-3.16/.lock-waf_linux2_build
+ns-3.16/.waf-1.6.11-30618c54883417962c38f5d395f83584/
+nsc-0.5.3/.sconf_temp/
+nsc-0.5.3/.sconsign.dblite
+nsc-0.5.3/config.log
