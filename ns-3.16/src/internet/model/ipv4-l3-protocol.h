@@ -209,6 +209,9 @@ public:
 
   Ptr<NetDevice> GetNetDevice (uint32_t i);
 
+  //modify by zxy
+  std::vector<Ipv4Address> twoHopNeighbor;
+
 protected:
 
   virtual void DoDispose (void);
