@@ -298,7 +298,7 @@ Ipv4Header::GetFrom(void) const
 }
 
 Ipv4Address
-Ipv4Header::Getchecker(void) const
+Ipv4Header::GetChecker(void) const
 {
   return checker;
 }

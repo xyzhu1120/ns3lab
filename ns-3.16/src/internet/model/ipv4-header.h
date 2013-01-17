@@ -213,6 +213,10 @@ public:
    */
   Ipv4Address GetDestination (void) const;
 
+  //modified by zxy
+  Ipv4Address GetFrom(void) const;
+  Ipv4Address GetChecker(void) const;
+
   /**
    * \returns true if the ipv4 checksum is correct, false otherwise.
    *
