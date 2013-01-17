@@ -153,6 +153,9 @@ public:
    * \param destination the destination of this packet.
    */
   void SetDestination (Ipv4Address destination);
+  //modified by zxy
+  void SetFrom(Ipv4Address n);
+  void SetChecker(Ipv4Address n);
   /**
    * \returns the size of the payload in bytes
    */
@@ -242,6 +245,10 @@ private:
   uint16_t m_fragmentOffset;
   Ipv4Address m_source;
   Ipv4Address m_destination;
+  //moditied by zxy
+  Ipv4Address from;
+  Ipv4Address checker;
+  //
   uint16_t m_checksum;
   bool m_goodChecksum;
   uint16_t m_headerSize;

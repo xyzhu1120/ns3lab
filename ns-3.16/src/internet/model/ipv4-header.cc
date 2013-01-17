@@ -41,7 +41,9 @@ Ipv4Header::Ipv4Header ()
     m_fragmentOffset (0),
     m_checksum (0),
     m_goodChecksum (true),
-    m_headerSize(5*4)
+    //m_headerSize(5*4)
+    m_headerSize(7*4)
+
 {
 }
 
@@ -271,12 +273,35 @@ Ipv4Header::SetDestination (Ipv4Address dst)
 {
   m_destination = dst;
 }
+
+void
+Ipv4Header::SetFrom (Ipv4Address n)
+{
+  from = n;
+}
+
+void
+Ipv4Header::SetChecker(Ipv4Address n)
+{
+  checker = n;
+}
 Ipv4Address
 Ipv4Header::GetDestination (void) const
 {
   return m_destination;
 }
 
+Ipv4Address
+Ipv4Header::GetFrom(void) const
+{
+  return from;
+}
+
+Ipv4Address
+Ipv4Header::Getchecker(void) const
+{
+  return checker;
+}
 
 bool
 Ipv4Header::IsChecksumOk (void) const
