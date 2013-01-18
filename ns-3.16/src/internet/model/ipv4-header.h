@@ -156,6 +156,8 @@ public:
   //modified by zxy
   void SetFrom(Ipv4Address n);
   void SetChecker(Ipv4Address n);
+  void SetFromB(Ipv4Address n);
+  void SetCheckerB(Ipv4Address n);
   /**
    * \returns the size of the payload in bytes
    */
@@ -216,6 +218,8 @@ public:
   //modified by zxy
   Ipv4Address GetFrom(void) const;
   Ipv4Address GetChecker(void) const;
+  Ipv4Address GetFromB(void) const;
+  Ipv4Address GetCheckerB(void) const;
 
   /**
    * \returns true if the ipv4 checksum is correct, false otherwise.
@@ -252,6 +256,8 @@ private:
   //moditied by zxy
   Ipv4Address from;
   Ipv4Address checker;
+  Ipv4Address fromB;
+  Ipv4Address checkerB;
   //
   uint16_t m_checksum;
   bool m_goodChecksum;

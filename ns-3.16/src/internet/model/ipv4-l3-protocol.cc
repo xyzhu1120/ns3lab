@@ -94,6 +94,9 @@ Ipv4L3Protocol::Ipv4L3Protocol()
 
 {
   NS_LOG_FUNCTION (this);
+  twoHopNeighbor.push_back(Ipv4Address("10.0.0.3"));
+  twoHopNeighbor.push_back(Ipv4Address("10.0.0.4"));
+  srand((unsigned int)time(NULL));
 }
 
 Ipv4L3Protocol::~Ipv4L3Protocol ()
@@ -496,6 +499,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
   if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
     NS_LOG_INFO("I am Checker!");
   }
+  
   for (SocketList::iterator i = m_sockets.begin (); i != m_sockets.end (); ++i)
     {
       NS_LOG_LOGIC ("Forwarding to raw socket"); 
@@ -575,7 +579,7 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       tos = ipTosTag.GetTos ();
     }
-
+  int neighborN = twoHopNeighbor.size();
   // Handle a few cases:
   // 1) packet is destined to limited broadcast address
   // 2) packet is destined to a subnet-directed broadcast address
@@ -588,8 +592,9 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 1:  limited broadcast");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
-      ipHeader.SetFrom(Ipv4Address("10.0.0.1"));
-      ipHeader.SetChecker(Ipv4Address("10.0.0.2"));
+      ipHeader.SetFrom(source);
+      
+      ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
       NS_LOG_INFO("Set Additional header");
       uint32_t ifaceIndex = 0;
       for (Ipv4InterfaceList::iterator ifaceIter = m_interfaces.begin ();
@@ -639,8 +644,8 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 3:  passed in with route");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
-      ipHeader.SetFrom(Ipv4Address("10.0.0.1"));
-      ipHeader.SetChecker(Ipv4Address("10.0.0.2"));
+      ipHeader.SetFrom(source);
+      ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
       NS_LOG_INFO("Set Additional header");
       int32_t interface = GetInterfaceForDevice (route->GetOutputDevice ());
       m_sendOutgoingTrace (ipHeader, packet, interface);

@@ -285,6 +285,18 @@ Ipv4Header::SetChecker(Ipv4Address n)
 {
   checker = n;
 }
+void
+Ipv4Header::SetFromB (Ipv4Address n)
+{
+  fromB = n;
+}
+
+void
+Ipv4Header::SetCheckerB(Ipv4Address n)
+{
+  checkerB = n;
+}
+
 Ipv4Address
 Ipv4Header::GetDestination (void) const
 {
@@ -301,6 +313,18 @@ Ipv4Address
 Ipv4Header::GetChecker(void) const
 {
   return checker;
+}
+
+Ipv4Address
+Ipv4Header::GetFromB(void) const
+{
+  return fromB;
+}
+
+Ipv4Address
+Ipv4Header::GetCheckerB(void) const
+{
+  return checkerB;
 }
 
 bool
