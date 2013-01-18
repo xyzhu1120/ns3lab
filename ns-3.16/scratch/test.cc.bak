@@ -1,44 +1,123 @@
-#include "ns3/simulator.h"
 #include "ns3/test.h"
+#include "ns3/socket-factory.h"
+#include "ns3/ipv4-raw-socket-factory.h"
+#include "ns3/simulator.h"
+#include "ns3/simple-channel.h"
+#include "ns3/simple-net-device.h"
+#include "ns3/drop-tail-queue.h"
+#include "ns3/socket.h"
+
 #include "ns3/log.h"
-#include "ns3/inet-socket-address.h"
 #include "ns3/node.h"
+#include "ns3/inet-socket-address.h"
+#include "ns3/boolean.h"
 
-#include "ns3/ipv4-l3-protocol.h"
 #include "ns3/arp-l3-protocol.h"
-#include "ns3/ipv4-interface.h"
-#include "ns3/loopback-net-device.h"
+#include "ns3/ipv4-l3-protocol.h"
+#include "ns3/icmpv4-l4-protocol.h"
+#include "ns3/ipv4-list-routing.h"
+#include "ns3/ipv4-static-routing.h"
 
-using namespace ns3
+#include <string>
+#include <limits>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+using namespace ns3;
+
+void AddInternetStack (Ptr<Node> node)
+{
+  //ARP
+  Ptr<ArpL3Protocol> arp = CreateObject<ArpL3Protocol> ();
+  node->AggregateObject (arp);
+  //IPV4
+  Ptr<Ipv4L3Protocol> ipv4 = CreateObject<Ipv4L3Protocol> ();
+  //Routing for Ipv4
+  Ptr<Ipv4ListRouting> ipv4Routing = CreateObject<Ipv4ListRouting> ();
+  ipv4->SetRoutingProtocol (ipv4Routing);
+  Ptr<Ipv4StaticRouting> ipv4staticRouting = CreateObject<Ipv4StaticRouting> ();
+  ipv4Routing->AddRoutingProtocol (ipv4staticRouting, 0);
+  node->AggregateObject (ipv4);
+  //ICMP
+  Ptr<Icmpv4L4Protocol> icmp = CreateObject<Icmpv4L4Protocol> ();
+  node->AggregateObject (icmp);
+  // //Ipv4Raw
+  // Ptr<Ipv4UdpL4Protocol> udp = CreateObject<UdpL4Protocol> ();
+  // node->AggregateObject(udp); 
+  return;
+}
+
+void
+DoSendData (Ptr<Socket> socket, std::string to)
+{
+  Address realTo = InetSocketAddress (Ipv4Address (to.c_str ()), 0);
+  NS_TEST_EXPECT_MSG_EQ (socket->SendTo (Create<Packet> (123), 0, realTo),
+                         123, to);
+}
+
+void
+Ipv4RawSocketImplTest::SendData (Ptr<Socket> socket, std::string to)
+{
+  m_receivedPacket = Create<Packet> ();
+  m_receivedPacket2 = Create<Packet> ();
+  Simulator::Schedule (Seconds (0),
+                                  &DoSendData, socket, to);
+  Simulator::Run ();
+}
+
 
 int main(){
-  Ptr<Node> node = CreateObject<Node> ();
-  Ptr<Ipv4L3Protocol> ipv4 = CreateObject<Ipv4L3Protocol> ();
-  Ptr<Ipv4Interface> interface = CreateObject<Ipv4Interface> ();
-  Ptr<LoopbackNetDevice> device = CreateObject<LoopbackNetDevice> ();
-  node->AddDevice (device);
-  interface->SetDevice (device);
-  interface->SetNode (node);
-  uint32_t index = ipv4->AddIpv4Interface (interface);
-  NS_TEST_ASSERT_MSG_EQ (index, 0, "No interface should be found??");
-  interface->SetUp ();
-  Ipv4InterfaceAddress ifaceAddr1 = Ipv4InterfaceAddress ("10.0.0.1",
-                                                          "255.255.255.0");
-  iterface->AddAddress(ifaceAddr1);
+Ptr<Node> rxNode = CreateObject<Node> ();
+  AddInternetStack (rxNode);
+  Ptr<SimpleNetDevice> rxDev1, rxDev2;
+  { // first interface
+    rxDev1 = CreateObject<SimpleNetDevice> ();
+    rxDev1->SetAddress (Mac48Address::ConvertFrom (Mac48Address::Allocate ()));
+    rxNode->AddDevice (rxDev1);
+    Ptr<Ipv4> ipv4 = rxNode->GetObject<Ipv4> ();
+    uint32_t netdev_idx = ipv4->AddInterface (rxDev1);
+    Ipv4InterfaceAddress ipv4Addr = Ipv4InterfaceAddress (Ipv4Address ("10.0.0.1"), Ipv4Mask (0xffff0000U));
+    ipv4->AddAddress (netdev_idx, ipv4Addr);
+    ipv4->SetUp (netdev_idx);
+  }
+  Ptr<Node> txNode = CreateObject<Node> ();
+  AddInternetStack (txNode);
+  Ptr<SimpleNetDevice> txDev1;
+  {
+    txDev1 = CreateObject<SimpleNetDevice> ();
+    txDev1->SetAddress (Mac48Address::ConvertFrom (Mac48Address::Allocate ()));
+    txNode->AddDevice (txDev1);
+    Ptr<Ipv4> ipv4 = txNode->GetObject<Ipv4> ();
+    uint32_t netdev_idx = ipv4->AddInterface (txDev1);
+    Ipv4InterfaceAddress ipv4Addr = Ipv4InterfaceAddress (Ipv4Address ("10.0.0.2"), Ipv4Mask (0xffff0000U));
+    ipv4->AddAddress (netdev_idx, ipv4Addr);
+    ipv4->SetUp (netdev_idx);
+  }
+  
+  Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel> ();
+  rxDev1->SetChannel (channel1);
+  txDev1->SetChannel (channel1);
 
-  Ptr<Node> node2 = CreateObject<Node> ();
-  Ptr<Ipv4L3Protocol> ipv42 = CreateObject<Ipv4L3Protocol> ();
-  Ptr<Ipv4Interface> interface2 = CreateObject<Ipv4Interface> ();
-  Ptr<LoopbackNetDevice> device2 = CreateObject<LoopbackNetDevice> ();
-  node2->AddDevice (device2);
-  interface2->SetDevice (device2);
-  interface2->SetNode (node2);
-  index = ipv42->AddIpv4Interface (interface2);
-  NS_TEST_ASSERT_MSG_EQ (index, 0, "No interface should be found??");
-  interface2->SetUp ();
-  Ipv4InterfaceAddress ifaceAddr2 = Ipv4InterfaceAddress ("10.0.0.2",
-                                                          "255.255.255.0");
-  iterface2->AddAddress(ifaceAddr2);
+// Create the IPv4 Raw sockets
+  Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<Ipv4RawSocketFactory> ();
+  Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket ();
+  NS_TEST_EXPECT_MSG_EQ (rxSocket->Bind (InetSocketAddress (Ipv4Address ("0.0.0.0"), 0)), 0, "trivial");
+  rxSocket->SetRecvCallback (MakeCallback (&Ipv4RawSocketImplTest::ReceivePkt, this));
 
-  Simulator::Destroy ();
+  Ptr<Socket> rxSocket2 = rxSocketFactory->CreateSocket ();
+  rxSocket2->SetRecvCallback (MakeCallback (&Ipv4RawSocketImplTest::ReceivePkt2, this));
+  NS_TEST_EXPECT_MSG_EQ (rxSocket2->Bind (InetSocketAddress (Ipv4Address ("10.0.1.1"), 0)), 0, "trivial");
+
+  Ptr<SocketFactory> txSocketFactory = txNode->GetObject<Ipv4RawSocketFactory> ();
+  Ptr<Socket> txSocket = txSocketFactory->CreateSocket ();
+
+  Ptr<SocketFactory> txSocketFactory = txNode->GetObject<Ipv4RawSocketFactory> ();
+  Ptr<Socket> txSocket = txSocketFactory->CreateSocket ();
+
+  // ------ Now the tests ------------
+
+  // Unicast test
+  SendData (txSocket, "10.0.0.1");
+
 }

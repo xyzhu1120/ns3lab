@@ -397,6 +397,8 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
   i.WriteHtonU16 (0);
   i.WriteHtonU32 (m_source.Get ());
   i.WriteHtonU32 (m_destination.Get ());
+  i.WriteHtonU32 (from.Get ());
+  i.WriteHtonU32 (checker.Get ());
 
   if (m_calcChecksum) 
     {
@@ -442,7 +444,8 @@ Ipv4Header::Deserialize (Buffer::Iterator start)
   m_source.Set (i.ReadNtohU32 ());
   m_destination.Set (i.ReadNtohU32 ());
   m_headerSize = headerSize;
-
+  from.Set(i.ReadNtohU32 ());
+  checker.Set(i.ReadNtohU32 ());
   if (m_calcChecksum) 
     {
       i = start;

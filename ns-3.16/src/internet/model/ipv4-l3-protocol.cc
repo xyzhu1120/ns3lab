@@ -491,7 +491,9 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
-  if(ipHeader.GetChecker() == ipv4Interface->GetAddress(0).GetLocal()){
+  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
+  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
+  if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
     NS_LOG_INFO("I am Checker!");
   }
   for (SocketList::iterator i = m_sockets.begin (); i != m_sockets.end (); ++i)
@@ -587,7 +589,8 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 1:  limited broadcast");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
       ipHeader.SetFrom(Ipv4Address("10.0.0.1"));
-      ipHeader.SetChecker(Ipv4Address("10.0.0.3"));
+      ipHeader.SetChecker(Ipv4Address("10.0.0.2"));
+      NS_LOG_INFO("Set Additional header");
       uint32_t ifaceIndex = 0;
       for (Ipv4InterfaceList::iterator ifaceIter = m_interfaces.begin ();
            ifaceIter != m_interfaces.end (); ifaceIter++, ifaceIndex++)
@@ -637,7 +640,8 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 3:  passed in with route");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
       ipHeader.SetFrom(Ipv4Address("10.0.0.1"));
-      ipHeader.SetChecker(Ipv4Address("10.0.0.3"));
+      ipHeader.SetChecker(Ipv4Address("10.0.0.2"));
+      NS_LOG_INFO("Set Additional header");
       int32_t interface = GetInterfaceForDevice (route->GetOutputDevice ());
       m_sendOutgoingTrace (ipHeader, packet, interface);
       SendRealOut (route, packet->Copy (), ipHeader);
