@@ -1,0 +1,44 @@
+#include "ns3/simulator.h"
+#include "ns3/test.h"
+#include "ns3/log.h"
+#include "ns3/inet-socket-address.h"
+#include "ns3/node.h"
+
+#include "ns3/ipv4-l3-protocol.h"
+#include "ns3/arp-l3-protocol.h"
+#include "ns3/ipv4-interface.h"
+#include "ns3/loopback-net-device.h"
+
+using namespace ns3
+
+int main(){
+  Ptr<Node> node = CreateObject<Node> ();
+  Ptr<Ipv4L3Protocol> ipv4 = CreateObject<Ipv4L3Protocol> ();
+  Ptr<Ipv4Interface> interface = CreateObject<Ipv4Interface> ();
+  Ptr<LoopbackNetDevice> device = CreateObject<LoopbackNetDevice> ();
+  node->AddDevice (device);
+  interface->SetDevice (device);
+  interface->SetNode (node);
+  uint32_t index = ipv4->AddIpv4Interface (interface);
+  NS_TEST_ASSERT_MSG_EQ (index, 0, "No interface should be found??");
+  interface->SetUp ();
+  Ipv4InterfaceAddress ifaceAddr1 = Ipv4InterfaceAddress ("10.0.0.1",
+                                                          "255.255.255.0");
+  iterface->AddAddress(ifaceAddr1);
+
+  Ptr<Node> node2 = CreateObject<Node> ();
+  Ptr<Ipv4L3Protocol> ipv42 = CreateObject<Ipv4L3Protocol> ();
+  Ptr<Ipv4Interface> interface2 = CreateObject<Ipv4Interface> ();
+  Ptr<LoopbackNetDevice> device2 = CreateObject<LoopbackNetDevice> ();
+  node2->AddDevice (device2);
+  interface2->SetDevice (device2);
+  interface2->SetNode (node2);
+  index = ipv42->AddIpv4Interface (interface2);
+  NS_TEST_ASSERT_MSG_EQ (index, 0, "No interface should be found??");
+  interface2->SetUp ();
+  Ipv4InterfaceAddress ifaceAddr2 = Ipv4InterfaceAddress ("10.0.0.2",
+                                                          "255.255.255.0");
+  iterface2->AddAddress(ifaceAddr2);
+
+  Simulator::Destroy ();
+}

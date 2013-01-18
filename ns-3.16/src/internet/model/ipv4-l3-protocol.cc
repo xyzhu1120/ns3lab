@@ -491,6 +491,9 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
+  if(ipHeader.GetChecker() == ipv4Interface->GetAddress(0).GetLocal()){
+    NS_LOG_INFO("I am Checker!");
+  }
   for (SocketList::iterator i = m_sockets.begin (); i != m_sockets.end (); ++i)
     {
       NS_LOG_LOGIC ("Forwarding to raw socket"); 
