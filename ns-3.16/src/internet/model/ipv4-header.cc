@@ -42,7 +42,7 @@ Ipv4Header::Ipv4Header ()
     m_checksum (0),
     m_goodChecksum (true),
     //m_headerSize(5*4)
-    m_headerSize(7*4)
+    m_headerSize(9*4)
 
 {
 }
@@ -398,10 +398,10 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
 {
   Buffer::Iterator i = start;
 
-  uint8_t verIhl = (4 << 4) | (5);
+  uint8_t verIhl = (4 << 4) | (9);
   i.WriteU8 (verIhl);
   i.WriteU8 (m_tos);
-  i.WriteHtonU16 (m_payloadSize + 5*4);
+  i.WriteHtonU16 (m_payloadSize + 9*4);
   i.WriteHtonU16 (m_identification);
   uint32_t fragmentOffset = m_fragmentOffset / 8;
   uint8_t flagsFrag = (fragmentOffset >> 8) & 0x1f;
@@ -423,6 +423,8 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
   i.WriteHtonU32 (m_destination.Get ());
   i.WriteHtonU32 (from.Get ());
   i.WriteHtonU32 (checker.Get ());
+  i.WriteHtonU32 (fromB.Get ());
+  i.WriteHtonU32 (checkerB.Get ());
 
   if (m_calcChecksum) 
     {
@@ -470,6 +472,9 @@ Ipv4Header::Deserialize (Buffer::Iterator start)
   m_headerSize = headerSize;
   from.Set(i.ReadNtohU32 ());
   checker.Set(i.ReadNtohU32 ());
+  fromB.Set(i.ReadNtohU32 ());
+  checkerB.Set(i.ReadNtohU32 ());
+
   if (m_calcChecksum) 
     {
       i = start;

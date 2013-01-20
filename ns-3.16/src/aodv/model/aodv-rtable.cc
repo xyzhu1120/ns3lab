@@ -28,6 +28,7 @@
 
 #include "aodv-rtable.h"
 #include <algorithm>
+#include <iostream>
 #include <iomanip>
 #include "ns3/simulator.h"
 #include "ns3/log.h"
@@ -213,6 +214,7 @@ RoutingTable::LookupRoute (Ipv4Address id, RoutingTableEntry & rt)
       return false;
     }
   rt = i->second;
+  std::cout << "HOP NUMBER: " << rt.GetHop() << std::endl; 
   NS_LOG_LOGIC ("Route to " << id << " found");
   return true;
 }

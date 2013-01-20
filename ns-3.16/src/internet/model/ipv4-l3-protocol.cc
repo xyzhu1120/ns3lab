@@ -94,8 +94,9 @@ Ipv4L3Protocol::Ipv4L3Protocol()
 
 {
   NS_LOG_FUNCTION (this);
-  twoHopNeighbor.push_back(Ipv4Address("10.0.0.3"));
-  twoHopNeighbor.push_back(Ipv4Address("10.0.0.4"));
+  twoHopNeighbor.push_back(Ipv4Address("10.250.1.2"));
+  twoHopNeighbor.push_back(Ipv4Address("10.250.1.3"));
+  twoHopNeighbor.push_back(Ipv4Address("10.250.1.4"));
   srand((unsigned int)time(NULL));
 }
 
@@ -494,8 +495,8 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
-  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
-  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
+  //std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
+  //std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
   if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
     NS_LOG_INFO("I am Checker!");
   }
