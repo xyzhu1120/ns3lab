@@ -218,6 +218,7 @@ main (int argc, char *argv[])
   Ipv4GlobalRoutingHelper g;
   Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ("dynamic-global-routing.routes", std::ios::out);
   g.PrintRoutingTableAllAt (Seconds (12), routingStream);
+  g.PrintRoutingTableAllAt (Seconds (14), routingStream);
 
   NS_LOG_INFO ("Run Simulation.");
   Simulator::Run ();

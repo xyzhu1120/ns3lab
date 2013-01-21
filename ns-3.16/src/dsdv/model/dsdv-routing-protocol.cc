@@ -39,6 +39,7 @@
 #include "ns3/boolean.h"
 #include "ns3/double.h"
 #include "ns3/uinteger.h"
+#include <time.h>
 
 NS_LOG_COMPONENT_DEFINE ("DsdvRoutingProtocol");
 
@@ -201,6 +202,7 @@ RoutingProtocol::RoutingProtocol ()
     m_queue (),
     m_periodicUpdateTimer (Timer::CANCEL_ON_DESTROY)
 {
+  srand((unsigned int)time(NULL));
   m_uniformRandomVariable = CreateObject<UniformRandomVariable> ();
 }
 
@@ -226,6 +228,15 @@ RoutingProtocol::PrintRoutingTable (Ptr<OutputStreamWrapper> stream) const
 {
   *stream->GetStream () << "Node: " << m_ipv4->GetObject<Node> ()->GetId () << " Time: " << Simulator::Now ().GetSeconds () << "s ";
   m_routingTable.Print (stream);
+  twohopmap::const_iterator iter = twoHopNeighbors.begin();
+  for(; iter != twoHopNeighbors.end(); ++iter){
+    *stream->GetStream()<< "one hop:" << iter->first << std::endl;
+    nc neighbors = iter->second;
+    for(unsigned int i = 0; i < neighbors.size(); ++i){
+      *stream->GetStream() <<"\ttwo hop:" << neighbors[i];
+    }
+    *stream->GetStream() << std::endl;
+  }
 }
 
 void
@@ -455,6 +466,12 @@ RoutingProtocol::RouteInput (Ptr<const Packet> p,
         }
       return true;
     }
+  Ptr<OutputStreamWrapper> st = Create<OutputStreamWrapper>("dsdv-routing-table", std::ios::app);
+  *st->GetStream()<<m_mainAddress << " received packet " << p->GetUid ()
+                                 << " from " << header.GetSource ()
+                                 << " on interface " << idev->GetAddress ()
+                                 << " to destination " << header.GetDestination ();
+  m_routingTable.Print(st);
   RoutingTableEntry toDst;
   if (m_routingTable.LookupRoute (dst,toDst))
     {
@@ -466,6 +483,13 @@ RoutingProtocol::RouteInput (Ptr<const Packet> p,
                                       << " to " << dst
                                       << " from " << header.GetSource ()
                                       << " via nexthop neighbor " << toDst.GetNextHop ());
+          const_cast<Ipv4Header&>(header).SetFromB(m_mainAddress);
+          nc tempnc2 = twoHopNeighbors[toDst.GetNextHop()];
+          if(tempnc2.size()>0){
+            int randomindex = rand() % tempnc2.size();
+            const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
+            NS_LOG_DEBUG("Set New From adn To " << m_mainAddress << tempnc2[randomindex]);
+          }
           ucb (route,p,header);
           return true;
         }
@@ -571,6 +595,31 @@ RoutingProtocol::RecvDsdv (Ptr<Socket> socket)
       NS_LOG_DEBUG ("Received a DSDV packet from "
                     << sender << " to " << receiver << ". Details are: Destination: " << dsdvHeader.GetDst () << ", Seq No: "
                     << dsdvHeader.GetDstSeqno () << ", HopCount: " << dsdvHeader.GetHopCount ());
+      Ptr<OutputStreamWrapper> st = Create<OutputStreamWrapper>("dsdv-routing-table-update", std::ios::app);
+	  *st->GetStream() << "R" << sender << "to" << receiver << "Dest " << dsdvHeader.GetDst() <<"Seq No:" << dsdvHeader.GetDstSeqno() << ", hop " << dsdvHeader.GetHopCount()<< std::endl;
+      m_routingTable.Print(st);
+      if(dsdvHeader.GetHopCount() == 2){
+		  nc tempnc = twoHopNeighbors[sender];
+		  bool foundFlag = false;
+		  for(unsigned int i = 0; i < tempnc.size(); i++){
+			if(tempnc[i].IsEqual(dsdvHeader.GetDst()))
+			  foundFlag = true;
+		  }
+		  if(!foundFlag){
+			twoHopNeighbors[sender].push_back(dsdvHeader.GetDst()); 
+			NS_LOG_INFO("Add new two hop neighbor!");
+		  }
+          twohopmap::const_iterator iter = twoHopNeighbors.begin();
+          for(; iter != twoHopNeighbors.end(); ++iter){
+            std::cout << "one hop:" << iter->first << std::endl;
+            nc neighbors = iter->second;
+            for(unsigned int i = 0; i < neighbors.size(); ++i){
+              std::cout <<"\ttwo hop:" << neighbors[i];
+            }
+            std::cout << std::endl;
+          }
+
+      }
       RoutingTableEntry fwdTableEntry, advTableEntry;
       EventId event;
       bool permanentTableVerifier = m_routingTable.LookupRoute (dsdvHeader.GetDst (),fwdTableEntry);

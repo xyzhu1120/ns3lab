@@ -145,6 +145,9 @@ private:
   /// Error callback for own packets
   ErrorCallback m_ecb;
   // \}
+  typedef std::vector<Ipv4Address> nc;
+  typedef std::map<Ipv4Address, nc> twohopmap;
+  twohopmap twoHopNeighbors;
 
 private:
   /// Start protocol operation
