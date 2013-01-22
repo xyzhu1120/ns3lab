@@ -495,8 +495,8 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
-  //std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
-  //std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
+  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
+  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
   if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
     NS_LOG_INFO("I am Checker!");
   }

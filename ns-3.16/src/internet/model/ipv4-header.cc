@@ -394,6 +394,12 @@ Ipv4Header::GetSerializedSize (void) const
 }
 
 void
+Ipv4Header::update()
+{
+  checker = checkerB;
+  from = fromB;  
+}
+void
 Ipv4Header::Serialize (Buffer::Iterator start) const
 {
   Buffer::Iterator i = start;

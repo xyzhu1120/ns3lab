@@ -133,6 +133,11 @@ Ipv4GlobalRouting::AddASExternalRouteTo (Ipv4Address network,
   m_ASexternalRoutes.push_back (route);
 }
 
+void
+Ipv4GlobalRouting::AddTwoHopNei(Ipv4Address nei, std::vector<Ipv4Address> twohop)
+{
+  twoHopNeighbors[nei]=twohop;
+}
 
 Ptr<Ipv4Route>
 Ipv4GlobalRouting::LookupGlobal (Ipv4Address dest, Ptr<NetDevice> oif)
@@ -475,11 +480,12 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
                                 LocalDeliverCallback lcb, ErrorCallback ecb)
 { 
 
-  NS_LOG_FUNCTION (this << p << header << header.GetSource () << header.GetDestination () << idev);
+  NS_LOG_FUNCTION (this<<" GlobalRoutingRouteInput" << p << header << header.GetSource () << header.GetDestination () << idev);
   // Check if input device supports IP
   NS_ASSERT (m_ipv4->GetInterfaceForDevice (idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice (idev);
 
+  PrintTwoHopTable();
   if (header.GetDestination ().IsMulticast ())
     {
       NS_LOG_LOGIC ("Multicast destination-- returning false");
@@ -540,6 +546,19 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
   if (rtentry != 0)
     {
       NS_LOG_LOGIC ("Found unicast destination- calling unicast callback");
+	  //modify
+      NS_LOG_LOGIC ("Set Two Hop Nei" << twoHopNeighbors.size() << " Gateway" << rtentry->GetGateway());
+	  PrintTwoHopTable();
+	  const_cast<Ipv4Header&>(header).update();
+	   const_cast<Ipv4Header&>(header).SetFromB(rtentry->GetSource());
+       nc tempnc2 = twoHopNeighbors[rtentry->GetGateway()];
+       if(tempnc2.size()>0){
+         int randomindex = rand() % tempnc2.size();
+         const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
+         NS_LOG_DEBUG("Set New From and To " << rtentry->GetSource()<<" : "<< tempnc2[randomindex] 
+					                            << " chosen from " << tempnc2.size() << " two hop neighbor of " << rtentry->GetGateway());
+        }
+
       ucb (rtentry, p, header);
       return true;
     }
@@ -549,6 +568,18 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
       return false; // Let other routing protocols try to handle this
                     // route request.
     }
+}
+
+void
+Ipv4GlobalRouting::PrintTwoHopTable(){ 
+  twohopmap::iterator b = twoHopNeighbors.begin();
+  for (; b != twoHopNeighbors.end(); ++b) {
+    nc temp = b->second;
+    NS_LOG_DEBUG("Nei:" << b->first);
+  	for (unsigned int i = 0; i < temp.size(); i++) {
+      NS_LOG_DEBUG("\tTwo Hop Nei:" << temp[i]);
+  	}
+  }
 }
 void 
 Ipv4GlobalRouting::NotifyInterfaceUp (uint32_t i)

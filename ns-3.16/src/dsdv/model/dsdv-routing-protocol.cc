@@ -483,12 +483,16 @@ RoutingProtocol::RouteInput (Ptr<const Packet> p,
                                       << " to " << dst
                                       << " from " << header.GetSource ()
                                       << " via nexthop neighbor " << toDst.GetNextHop ());
+		  //modifed
+		  ++pc[toDst.GetNextHop()];
+          NS_LOG_DEBUG(pc[toDst.GetNextHop()] << " Packet sent");
           const_cast<Ipv4Header&>(header).SetFromB(m_mainAddress);
           nc tempnc2 = twoHopNeighbors[toDst.GetNextHop()];
           if(tempnc2.size()>0){
             int randomindex = rand() % tempnc2.size();
             const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
-            NS_LOG_DEBUG("Set New From adn To " << m_mainAddress << tempnc2[randomindex]);
+            NS_LOG_DEBUG("Set New From and To " << m_mainAddress <<" : "<< tempnc2[randomindex] 
+					                            << " chosen from " << tempnc2.size() << " two hop neighbor of " << toDst.GetNextHop());
           }
           ucb (route,p,header);
           return true;
@@ -556,6 +560,12 @@ RoutingProtocol::RecvDsdv (Ptr<Socket> socket)
   InetSocketAddress inetSourceAddr = InetSocketAddress::ConvertFrom (sourceAddress);
   Ipv4Address sender = inetSourceAddr.GetIpv4 ();
   Ipv4Address receiver = m_socketAddresses[socket].GetLocal ();
+  NS_LOG_DEBUG("Print socket"<<m_socketAddresses.size() <<" : "<<receiver);
+  std::map<Ptr<Socket>, Ipv4InterfaceAddress>::iterator socketiter = m_socketAddresses.begin( );
+  for (; socketiter != m_socketAddresses.end(); socketiter++) {
+  	/* code */
+	NS_LOG_DEBUG(socketiter->second);
+  }
   Ptr<NetDevice> dev = m_ipv4->GetNetDevice (m_ipv4->GetInterfaceForAddress (receiver));
   uint32_t packetSize = packet->GetSize ();
   NS_LOG_FUNCTION (m_mainAddress << " received dsdv packet of size: " << packetSize

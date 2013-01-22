@@ -684,6 +684,7 @@ void
 GlobalRouteManagerImpl::InitializeRoutes ()
 {
   NS_LOG_FUNCTION_NOARGS ();
+  Ptr<OutputStreamWrapper> stream = Create<OutputStreamWrapper>( "debug.log",std::ios::app );
 //
 // Walk the list of nodes in the system.
 //
@@ -711,6 +712,7 @@ GlobalRouteManagerImpl::InitializeRoutes ()
 //
       if (rtr && rtr->GetNumLSAs () )
         {
+          *stream->GetStream()<<"Init " << rtr->GetRouterId() << std::endl;
           SPFCalculate (rtr->GetRouterId ());
         }
     }
@@ -1328,6 +1330,68 @@ GlobalRouteManagerImpl::SPFCalculate (Ipv4Address root)
 {
   NS_LOG_FUNCTION (this << root);
 
+  //modify for debug
+  NodeList::Iterator i = NodeList::Begin (); 
+  NodeList::Iterator listEnd = NodeList::End ();
+  for (; i != listEnd; i++)
+  {
+     Ptr<Node> node = *i;
+     Ptr<GlobalRouter> rtr = 
+        node->GetObject<GlobalRouter> ();
+	 if( rtr->GetRouterId() == root){
+
+       Ptr<GlobalRouter> router = node->GetObject<GlobalRouter> ();
+       if (router == 0)
+       { 
+		   continue;
+	   }
+       Ptr<Ipv4GlobalRouting> gr = router->GetRoutingProtocol ();
+
+       Ptr<OutputStreamWrapper> stream = Create<OutputStreamWrapper>( "debug.log",std::ios::app );
+       GlobalRoutingLSA *mylsa = m_lsdb->GetLSA(root);
+       std::vector<Ipv4Address> twohopneicontainer;
+       unsigned int lsanum = mylsa->GetNLinkRecords();
+       for (unsigned int i = 0; i < lsanum; i++) {
+       	/* code */
+         GlobalRoutingLinkRecord *record = mylsa->GetLinkRecord(i);
+         if(record->GetLinkType() == GlobalRoutingLinkRecord::PointToPoint){
+           Ipv4Address neiId = record->GetLinkId();
+           GlobalRoutingLSA *neilsa = m_lsdb->GetLSA(neiId);
+		   Ipv4Address neiIp;
+           unsigned int neilsanum = neilsa->GetNLinkRecords( );
+           for (unsigned int j = 0; j < neilsanum; ++j) {
+           	 GlobalRoutingLinkRecord *neirecord = neilsa->GetLinkRecord(j);
+         	 if( neirecord->GetLinkType() == GlobalRoutingLinkRecord::PointToPoint) {
+               *stream->GetStream()<<"NeiRecord " << neirecord->GetLinkId() << std::endl;
+               if(neirecord->GetLinkId() == root){
+			       neiIp = neirecord->GetLinkData();
+				   continue;
+			   }
+         	   GlobalRoutingLSA *twohopneilsa = m_lsdb->GetLSA(neirecord->GetLinkId());
+         	   unsigned int twohopneilsanum = twohopneilsa->GetNLinkRecords();
+         	   for (unsigned int k = 0; k < twohopneilsanum; k++) {
+                 GlobalRoutingLinkRecord *twohopneirecord = twohopneilsa->GetLinkRecord(k);
+         	     if(twohopneirecord->GetLinkType()  == GlobalRoutingLinkRecord::PointToPoint 
+         	 			&& twohopneirecord->GetLinkId() == neiId){ 
+                   *stream->GetStream()<<"twoHopNei " << twohopneirecord->GetLinkData() << std::endl;
+                   twohopneicontainer.push_back(twohopneirecord->GetLinkData()) ;
+         	 	 }
+         	   }
+			   if(neirecord->GetLinkId() == root) { 
+			     neiIp = neirecord->GetLinkData();
+			   }
+         	 }
+           }
+           gr->AddTwoHopNei(neiIp, twohopneicontainer);
+		   gr->PrintTwoHopTable();
+		   twohopneicontainer.clear();
+         }
+       }
+       *stream->GetStream()<<"SPFCalculate for " << root <<" " <<lsanum << std::endl;
+       *stream->GetStream()<<*mylsa;
+    } 
+  } 
+  
   SPFVertex *v;
 //
 // Initialize the Link State Database.

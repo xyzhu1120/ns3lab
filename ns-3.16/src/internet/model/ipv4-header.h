@@ -158,6 +158,7 @@ public:
   void SetChecker(Ipv4Address n);
   void SetFromB(Ipv4Address n);
   void SetCheckerB(Ipv4Address n);
+  void update();
   /**
    * \returns the size of the payload in bytes
    */

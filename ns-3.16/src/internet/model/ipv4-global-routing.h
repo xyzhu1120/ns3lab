@@ -220,7 +220,10 @@ public:
   * \return the number of stream indices assigned by this model
   */
   int64_t AssignStreams (int64_t stream);
+  
+  void AddTwoHopNei( Ipv4Address nei, std::vector<Ipv4Address> twohopnei );
 
+  void PrintTwoHopTable();
 protected:
   void DoDispose (void);
 
@@ -229,8 +232,9 @@ private:
   bool m_randomEcmpRouting;
   /// Set to true if this interface should respond to interface events by globallly recomputing routes 
   bool m_respondToInterfaceEvents;
-  /// A uniform random number generator for randomly routing packets among ECMP 
+  //i// A uniform random number generator for randomly routing packets among ECMP 
   Ptr<UniformRandomVariable> m_rand;
+
 
   typedef std::list<Ipv4RoutingTableEntry *> HostRoutes;
   typedef std::list<Ipv4RoutingTableEntry *>::const_iterator HostRoutesCI;
@@ -242,6 +246,11 @@ private:
   typedef std::list<Ipv4RoutingTableEntry *>::const_iterator ASExternalRoutesCI;
   typedef std::list<Ipv4RoutingTableEntry *>::iterator ASExternalRoutesI;
 
+  typedef std::vector<Ipv4Address> nc;
+  typedef std::map<Ipv4Address, nc> twohopmap;
+  typedef std::map<Ipv4Address, unsigned int> packetcounter;
+  twohopmap twoHopNeighbors;
+  packetcounter pc;
   Ptr<Ipv4Route> LookupGlobal (Ipv4Address dest, Ptr<NetDevice> oif = 0);
 
   HostRoutes m_hostRoutes;

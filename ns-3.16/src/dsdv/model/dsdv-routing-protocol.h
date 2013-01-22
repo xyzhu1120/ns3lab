@@ -147,7 +147,9 @@ private:
   // \}
   typedef std::vector<Ipv4Address> nc;
   typedef std::map<Ipv4Address, nc> twohopmap;
+  typedef std::map<Ipv4Address, unsigned int> packetcounter;
   twohopmap twoHopNeighbors;
+  packetcounter pc;
 
 private:
   /// Start protocol operation
