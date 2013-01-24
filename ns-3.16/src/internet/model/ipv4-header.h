@@ -43,6 +43,7 @@ public:
    * \param size the size of the payload in bytes
    */
   void SetPayloadSize (uint16_t size);
+  bool isEpochEndSignal();
   /**
    * \param identification the Identification field of IPv4 packets.
    *
@@ -53,6 +54,7 @@ public:
    * \param tos the 8 bits of Ipv4 TOS.
    */
   void SetTos (uint8_t tos);
+  void SetEpochEndUp();
   /**
    * \enum DscpType
    * \brief DiffServ Code Points 
@@ -155,9 +157,13 @@ public:
   void SetDestination (Ipv4Address destination);
   //modified by zxy
   void SetFrom(Ipv4Address n);
-  void SetChecker(Ipv4Address n);
+  void SetReportFlag();
+  bool IsReportFlag();
+ // void SetChecker(Ipv4Address n);
   void SetFromB(Ipv4Address n);
-  void SetCheckerB(Ipv4Address n);
+ // void SetCheckerB(Ipv4Address n);
+  void SetCount(unsigned int);
+  unsigned int GetCount();
   void update();
   /**
    * \returns the size of the payload in bytes
@@ -218,9 +224,9 @@ public:
 
   //modified by zxy
   Ipv4Address GetFrom(void) const;
-  Ipv4Address GetChecker(void) const;
+ // Ipv4Address GetChecker(void) const;
   Ipv4Address GetFromB(void) const;
-  Ipv4Address GetCheckerB(void) const;
+//  Ipv4Address GetCheckerB(void) const;
 
   /**
    * \returns true if the ipv4 checksum is correct, false otherwise.
@@ -240,7 +246,7 @@ private:
 
   enum FlagsE {
     DONT_FRAGMENT = (1<<0),
-    MORE_FRAGMENTS = (1<<1)
+    MORE_FRAGMENTS = (1<<1),
   };
 
   bool m_calcChecksum;
@@ -256,13 +262,14 @@ private:
   Ipv4Address m_destination;
   //moditied by zxy
   Ipv4Address from;
-  Ipv4Address checker;
   Ipv4Address fromB;
-  Ipv4Address checkerB;
+  uint32_t count;
+  //Ipv4Address checkerB;
   //
   uint16_t m_checksum;
   bool m_goodChecksum;
   uint16_t m_headerSize;
+  uint32_t secureFlags;
 };
 
 } // namespace ns3

@@ -490,7 +490,7 @@ RoutingProtocol::RouteInput (Ptr<const Packet> p,
           nc tempnc2 = twoHopNeighbors[toDst.GetNextHop()];
           if(tempnc2.size()>0){
             int randomindex = rand() % tempnc2.size();
-            const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
+            //const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
             NS_LOG_DEBUG("Set New From and To " << m_mainAddress <<" : "<< tempnc2[randomindex] 
 					                            << " chosen from " << tempnc2.size() << " two hop neighbor of " << toDst.GetNextHop());
           }

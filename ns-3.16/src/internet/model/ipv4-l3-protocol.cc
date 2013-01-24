@@ -90,7 +90,9 @@ Ipv4L3Protocol::GetTypeId (void)
 }
 
 Ipv4L3Protocol::Ipv4L3Protocol()
-  : m_identification (0)
+   :NumOfPacketsSentOut(0),
+	UpperThreshold(10),
+    m_identification (0)
 
 {
   NS_LOG_FUNCTION (this);
@@ -488,6 +490,30 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       packet->RemoveAtEnd (packet->GetSize () - ipHeader.GetPayloadSize ());
     }
 
+  if(ipHeader.IsReportFlag()){ 
+	  std::cout << "Receive the Count Message" << ipHeader.GetCount() <<ipHeader.GetSource()  << std::endl;
+	  return;
+  }
+  if(ipHeader.isEpochEndSignal() && ipHeader.GetDestination() == ipv4Interface->GetAddress(0).GetLocal()) {
+	  std::cout << "Receive the End signal" << ipHeader.GetSource() << std::endl;
+	  Ipv4Address source = ipHeader.GetSource() ;
+	  unsigned int count = pc[source];
+	  pc[source] = 0;
+	  Ptr<Packet> p = Create<Packet>();
+	  Ipv4Header epochhead;
+	  epochhead.SetReportFlag();
+	  epochhead.SetDestination(ipHeader.GetSource());
+	  epochhead.SetSource(ipv4Interface->GetAddress(0).GetLocal());
+	  epochhead.SetCount(count);
+      m_routingProtocol->RouteInput (p, epochhead, device,
+                                      MakeCallback (&Ipv4L3Protocol::IpForward, this),
+                                      MakeCallback (&Ipv4L3Protocol::IpMulticastForward, this),
+                                      MakeCallback (&Ipv4L3Protocol::LocalDeliver, this),
+                                      MakeCallback (&Ipv4L3Protocol::RouteInputError, this));
+	  return;
+   
+  } 
+  std::cout << ipv4Interface->GetAddress(0).GetLocal() << " Receive Packet and Dest: "<< ipHeader.GetDestination() << " From is "<< ipHeader.GetFrom() << std::endl;
   if (!ipHeader.IsChecksumOk ()) 
     {
       NS_LOG_LOGIC ("Dropping received packet -- checksum not ok");
@@ -495,12 +521,13 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
-  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
-  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
-  if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
-    NS_LOG_INFO("I am Checker!");
-  }
+//  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
+//  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
+//  if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
+//    NS_LOG_INFO("I am Checker!");
+//  }
   
+  ++pc[ipHeader.GetFrom()];
   for (SocketList::iterator i = m_sockets.begin (); i != m_sockets.end (); ++i)
     {
       NS_LOG_LOGIC ("Forwarding to raw socket"); 
@@ -580,7 +607,7 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       tos = ipTosTag.GetTos ();
     }
-  int neighborN = twoHopNeighbor.size();
+  //int neighborN = twoHopNeighbor.size();
   // Handle a few cases:
   // 1) packet is destined to limited broadcast address
   // 2) packet is destined to a subnet-directed broadcast address
@@ -593,9 +620,9 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 1:  limited broadcast");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
-      ipHeader.SetFrom(source);
+      ipHeader.SetFromB(source);
       
-      ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
+      //ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
       NS_LOG_INFO("Set Additional header");
       uint32_t ifaceIndex = 0;
       for (Ipv4InterfaceList::iterator ifaceIter = m_interfaces.begin ();
@@ -645,8 +672,8 @@ Ipv4L3Protocol::Send (Ptr<Packet> packet,
     {
       NS_LOG_LOGIC ("Ipv4L3Protocol::Send case 3:  passed in with route");
       ipHeader = BuildHeader (source, destination, protocol, packet->GetSize (), ttl, tos, mayFragment);
-      ipHeader.SetFrom(source);
-      ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
+      ipHeader.SetFromB(source);
+      //ipHeader.SetChecker(twoHopNeighbor[rand()%neighborN]);
       NS_LOG_INFO("Set Additional header");
       int32_t interface = GetInterfaceForDevice (route->GetOutputDevice ());
       m_sendOutgoingTrace (ipHeader, packet, interface);
@@ -751,6 +778,8 @@ Ipv4L3Protocol::SendRealOut (Ptr<Ipv4Route> route,
 
   if (!route->GetGateway ().IsEqual (Ipv4Address ("0.0.0.0")))
     {
+                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
+	                std::cout << "IpForward before Send real the End signal" << std::endl;
       if (outInterface->IsUp ())
         {
           NS_LOG_LOGIC ("Send to gateway " << route->GetGateway ());
@@ -761,12 +790,18 @@ Ipv4L3Protocol::SendRealOut (Ptr<Ipv4Route> route,
               for ( std::list<Ptr<Packet> >::iterator it = listFragments.begin (); it != listFragments.end (); it++ )
                 {
                   m_txTrace (*it, m_node->GetObject<Ipv4> (), interface);
+                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
+	                std::cout << "IpForward Send real the End signal" << std::endl;
                   outInterface->Send (*it, route->GetGateway ());
                 }
             }
           else
             {
               m_txTrace (packet, m_node->GetObject<Ipv4> (), interface);
+                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal()){
+	                std::cout << "IpForward Send real2 the End signal" << std::endl;
+					std::cout<< packet << ipHeader.GetDestination()<< route->GetGateway()<<std::endl;
+                  }
               outInterface->Send (packet, route->GetGateway ());
             }
         }
@@ -851,6 +886,8 @@ Ipv4L3Protocol::IpForward (Ptr<Ipv4Route> rtentry, Ptr<const Packet> p, const Ip
 {
   NS_LOG_FUNCTION (this << rtentry << p << header);
   NS_LOG_LOGIC ("Forwarding logic for node: " << m_node->GetId ());
+  if(const_cast<Ipv4Header&>(header).isEpochEndSignal())
+	  std::cout << "IpForward Receive the End signal" << std::endl;
   // Forwarding
   Ipv4Header ipHeader = header;
   Ptr<Packet> packet = p->Copy ();
@@ -870,7 +907,16 @@ Ipv4L3Protocol::IpForward (Ptr<Ipv4Route> rtentry, Ptr<const Packet> p, const Ip
       m_dropTrace (header, packet, DROP_TTL_EXPIRED, m_node->GetObject<Ipv4> (), interface);
       return;
     }
+  /*
+  if(NumOfPacketsSentOut > UpperThreshold) { 
+	  Ptr<Packet> epockp = Create<Packet>();
+	  Ipv4Header epochhead = header;
+	  epochhead.SetEpochEndUp();
+	  NumOfPacketsSentOut = 0;
+  } */
   m_unicastForwardTrace (ipHeader, packet, interface);
+  if(const_cast<Ipv4Header&>(header).isEpochEndSignal())
+	  std::cout << "IpForward send the End signal" << std::endl;
   SendRealOut (rtentry, packet, ipHeader);
 }
 

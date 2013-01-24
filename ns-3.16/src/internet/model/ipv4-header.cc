@@ -42,7 +42,8 @@ Ipv4Header::Ipv4Header ()
     m_checksum (0),
     m_goodChecksum (true),
     //m_headerSize(5*4)
-    m_headerSize(9*4)
+    m_headerSize(10*4),
+	secureFlags( 0)
 
 {
 }
@@ -89,12 +90,21 @@ Ipv4Header::SetDscp (DscpType dscp)
 }
 
 void
+Ipv4Header::SetEpochEndUp(){ 
+  secureFlags |= 1;
+}
+
+void
 Ipv4Header::SetEcn (EcnType ecn)
 {
   m_tos &= 0xFC; // Clear out the ECN part, retain 6 bits of DSCP
   m_tos |= ecn;
 }
 
+bool
+Ipv4Header::isEpochEndSignal(){ 
+	return secureFlags & 1;
+}
 Ipv4Header::DscpType 
 Ipv4Header::GetDscp (void) const
 {
@@ -280,22 +290,22 @@ Ipv4Header::SetFrom (Ipv4Address n)
   from = n;
 }
 
-void
-Ipv4Header::SetChecker(Ipv4Address n)
-{
-  checker = n;
-}
+//void
+//Ipv4Header::SetChecker(Ipv4Address n)
+//{
+//  checker = n;
+//}
 void
 Ipv4Header::SetFromB (Ipv4Address n)
 {
   fromB = n;
 }
 
-void
-Ipv4Header::SetCheckerB(Ipv4Address n)
-{
-  checkerB = n;
-}
+//void
+//Ipv4Header::SetCheckerB(Ipv4Address n)
+//{
+//  checkerB = n;
+//}
 
 Ipv4Address
 Ipv4Header::GetDestination (void) const
@@ -309,11 +319,22 @@ Ipv4Header::GetFrom(void) const
   return from;
 }
 
-Ipv4Address
-Ipv4Header::GetChecker(void) const
-{
-  return checker;
+void
+Ipv4Header::SetCount(unsigned int count)
+{ 
+	this->count = count;
 }
+
+unsigned int
+Ipv4Header::GetCount()
+{ 
+	return this->count;
+}
+//Ipv4Address
+//Ipv4Header::GetChecker(void) const
+//{
+//  return checker;
+//}
 
 Ipv4Address
 Ipv4Header::GetFromB(void) const
@@ -321,11 +342,11 @@ Ipv4Header::GetFromB(void) const
   return fromB;
 }
 
-Ipv4Address
-Ipv4Header::GetCheckerB(void) const
-{
-  return checkerB;
-}
+//Ipv4Address
+//Ipv4Header::GetCheckerB(void) const
+//{
+//  return checkerB;
+//}
 
 bool
 Ipv4Header::IsChecksumOk (void) const
@@ -333,6 +354,15 @@ Ipv4Header::IsChecksumOk (void) const
   return m_goodChecksum;
 }
 
+void
+Ipv4Header::SetReportFlag(){ 
+	secureFlags |= 2;
+}
+
+bool
+Ipv4Header::IsReportFlag(){ 
+	return secureFlags & 2;
+}
 TypeId 
 Ipv4Header::GetTypeId (void)
 {
@@ -396,7 +426,7 @@ Ipv4Header::GetSerializedSize (void) const
 void
 Ipv4Header::update()
 {
-  checker = checkerB;
+ // checker = checkerB;
   from = fromB;  
 }
 void
@@ -407,7 +437,7 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
   uint8_t verIhl = (4 << 4) | (9);
   i.WriteU8 (verIhl);
   i.WriteU8 (m_tos);
-  i.WriteHtonU16 (m_payloadSize + 9*4);
+  i.WriteHtonU16 (m_payloadSize + 10*4);
   i.WriteHtonU16 (m_identification);
   uint32_t fragmentOffset = m_fragmentOffset / 8;
   uint8_t flagsFrag = (fragmentOffset >> 8) & 0x1f;
@@ -428,9 +458,11 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
   i.WriteHtonU32 (m_source.Get ());
   i.WriteHtonU32 (m_destination.Get ());
   i.WriteHtonU32 (from.Get ());
-  i.WriteHtonU32 (checker.Get ());
+  //i.WriteHtonU32 (checker.Get ());
   i.WriteHtonU32 (fromB.Get ());
-  i.WriteHtonU32 (checkerB.Get ());
+  //i.WriteHtonU32 (checkerB.Get ());
+  i.WriteHtonU32 ( count );
+  i.WriteHtonU32 (secureFlags);
 
   if (m_calcChecksum) 
     {
@@ -477,9 +509,11 @@ Ipv4Header::Deserialize (Buffer::Iterator start)
   m_destination.Set (i.ReadNtohU32 ());
   m_headerSize = headerSize;
   from.Set(i.ReadNtohU32 ());
-  checker.Set(i.ReadNtohU32 ());
+//  checker.Set(i.ReadNtohU32 ());
   fromB.Set(i.ReadNtohU32 ());
-  checkerB.Set(i.ReadNtohU32 ());
+  count = i.ReadNtohU32();
+//  checkerB.Set(i.ReadNtohU32 ());
+  secureFlags = i.ReadNtohU32();
 
   if (m_calcChecksum) 
     {

@@ -211,6 +211,8 @@ public:
 
   //modify by zxy
   std::vector<Ipv4Address> twoHopNeighbor;
+  typedef std::map<Ipv4Address, unsigned int> packetcounter;
+  packetcounter pc;
 
 protected:
 
@@ -221,6 +223,8 @@ protected:
    */
   virtual void NotifyNewAggregate ();
 private:
+  unsigned int NumOfPacketsSentOut;
+  const unsigned int UpperThreshold;
   friend class Ipv4L3ProtocolTestCase;
   Ipv4L3Protocol(const Ipv4L3Protocol &);
   Ipv4L3Protocol &operator = (const Ipv4L3Protocol &);

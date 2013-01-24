@@ -232,6 +232,8 @@ private:
   bool m_randomEcmpRouting;
   /// Set to true if this interface should respond to interface events by globallly recomputing routes 
   bool m_respondToInterfaceEvents;
+  std::map<Ipv4Address, unsigned int> NumOfPacketsSentOut;
+  const unsigned int UpperThreshold;
   //i// A uniform random number generator for randomly routing packets among ECMP 
   Ptr<UniformRandomVariable> m_rand;
 
@@ -248,15 +250,12 @@ private:
 
   typedef std::vector<Ipv4Address> nc;
   typedef std::map<Ipv4Address, nc> twohopmap;
-  typedef std::map<Ipv4Address, unsigned int> packetcounter;
   twohopmap twoHopNeighbors;
-  packetcounter pc;
   Ptr<Ipv4Route> LookupGlobal (Ipv4Address dest, Ptr<NetDevice> oif = 0);
 
   HostRoutes m_hostRoutes;
   NetworkRoutes m_networkRoutes;
   ASExternalRoutes m_ASexternalRoutes; // External routes imported
-
   Ptr<Ipv4> m_ipv4;
 };
 
