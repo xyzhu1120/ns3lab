@@ -226,7 +226,7 @@ public:
   void PrintTwoHopTable();
 protected:
   void DoDispose (void);
-
+  std::map<Ipv4Address, unsigned int> NumOfPacketsLastEpoch;
 private:
   /// Set to true if packets are randomly routed among ECMP; set to false for using only one route consistently
   bool m_randomEcmpRouting;

@@ -485,6 +485,9 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
   // Check if input device supports IP
   NS_ASSERT (m_ipv4->GetInterfaceForDevice (idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice (idev);
+  //if(header.IsReportFlag()){ 
+  //    std::count << "Into Routeinput" << std::endl;
+  //}
 
   PrintTwoHopTable();
   if (header.GetDestination ().IsMulticast ())
@@ -521,6 +524,11 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
               else
                 {
                   NS_LOG_LOGIC ("For me (destination " << addr << " match) on another interface " << header.GetDestination ());
+                }
+                if(header.IsReportFlag()){ 
+                    std::cout << "Receive the Count Message" << header.GetCount() <<header.GetSource() << " last hop is " << header.GetFromB() << std::endl;
+			        NumOfPacketsLastEpoch[header.GetFromB()] += header.GetCount();
+                    return true;
                 }
               lcb (p, header, iif);
               return true;
@@ -562,6 +570,10 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
       ++NumOfPacketsSentOut[rtentry->GetGateway()];
       ucb (rtentry, p, header);
       if(NumOfPacketsSentOut[rtentry->GetGateway()] > UpperThreshold) { 
+		if(abs(NumOfPacketsLastEpoch[rtentry->GetGateway()] - UpperThreshold) > 10){ 
+			std::cout<<"Warning: Something wrong" << std::endl;
+		}
+        NumOfPacketsLastEpoch[rtentry->GetGateway()] = 0;
         NS_LOG_LOGIC ("Go up to the threshold and broadcast the signal");
 		
 		std::cout <<"Go up to the threshold and broadcast the signal"<<std::endl;

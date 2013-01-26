@@ -18,6 +18,9 @@
 // Author: George F. Riley<riley@ece.gatech.edu>
 //
 
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "ns3/packet.h"
 #include "ns3/log.h"
 #include "ns3/callback.h"
@@ -92,14 +95,23 @@ Ipv4L3Protocol::GetTypeId (void)
 Ipv4L3Protocol::Ipv4L3Protocol()
    :NumOfPacketsSentOut(0),
 	UpperThreshold(10),
-    m_identification (0)
-
+    m_identification (0),
+    BADGUYRATE(5)
+	BADBEHAVIORRATE(3)
 {
   NS_LOG_FUNCTION (this);
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.2"));
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.3"));
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.4"));
-  srand((unsigned int)time(NULL));
+  int fd = open("/dev/random", O_RDONLY);
+  unsigned int tmp;
+  read(fd, &tmp, sizeof(tmp));
+  std::cout << "random " << tmp << std::endl;
+  tmp = tmp % BADGUYRATE;
+  if(tmp == 1){ 
+	  isBadGuy = true;
+	  std::cout << "I am bad guy" << std::endl;
+  }
 }
 
 Ipv4L3Protocol::~Ipv4L3Protocol ()
@@ -477,6 +489,11 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
         }
     }
 
+  if(isBadGuy){ 
+    std::cout << ipv4Interface->GetAddress(0).GetLocal() << "Drop packet!!" << std::endl;
+	return;
+  }
+
   Ipv4Header ipHeader;
   if (Node::ChecksumEnabled ())
     {
@@ -490,10 +507,11 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       packet->RemoveAtEnd (packet->GetSize () - ipHeader.GetPayloadSize ());
     }
 
-  if(ipHeader.IsReportFlag()){ 
-	  std::cout << "Receive the Count Message" << ipHeader.GetCount() <<ipHeader.GetSource()  << std::endl;
-	  return;
-  }
+//  if(ipHeader.IsReportFlag() && ipHeader.GetDestination()==ipv4Interface->GetAddress(0).GetLocal()){ 
+//      std::cout << "Receive the Count Message" << ipHeader.GetCount() <<ipHeader.GetSource() << " last hop is " << ipHeader.GetFromB() << std::endl;
+//      m_routingProtocol->NumOfPacketsLastEpoch[ipHeader.GetFromB()] += ipHeader.GetCount();
+//      return;
+//  }
   if(ipHeader.isEpochEndSignal() && ipHeader.GetDestination() == ipv4Interface->GetAddress(0).GetLocal()) {
 	  std::cout << "Receive the End signal" << ipHeader.GetSource() << std::endl;
 	  Ipv4Address source = ipHeader.GetSource() ;
@@ -778,8 +796,8 @@ Ipv4L3Protocol::SendRealOut (Ptr<Ipv4Route> route,
 
   if (!route->GetGateway ().IsEqual (Ipv4Address ("0.0.0.0")))
     {
-                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
-	                std::cout << "IpForward before Send real the End signal" << std::endl;
+             //     if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
+	           //     std::cout << "IpForward before Send real the End signal" << std::endl;
       if (outInterface->IsUp ())
         {
           NS_LOG_LOGIC ("Send to gateway " << route->GetGateway ());
@@ -790,18 +808,18 @@ Ipv4L3Protocol::SendRealOut (Ptr<Ipv4Route> route,
               for ( std::list<Ptr<Packet> >::iterator it = listFragments.begin (); it != listFragments.end (); it++ )
                 {
                   m_txTrace (*it, m_node->GetObject<Ipv4> (), interface);
-                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
-	                std::cout << "IpForward Send real the End signal" << std::endl;
+                  //if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal())
+	               // std::cout << "IpForward Send real the End signal" << std::endl;
                   outInterface->Send (*it, route->GetGateway ());
                 }
             }
           else
             {
               m_txTrace (packet, m_node->GetObject<Ipv4> (), interface);
-                  if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal()){
-	                std::cout << "IpForward Send real2 the End signal" << std::endl;
-					std::cout<< packet << ipHeader.GetDestination()<< route->GetGateway()<<std::endl;
-                  }
+                  //if(const_cast<Ipv4Header&>(ipHeader).isEpochEndSignal()){
+	               // std::cout << "IpForward Send real2 the End signal" << std::endl;
+					//std::cout<< packet << ipHeader.GetDestination()<< route->GetGateway()<<std::endl;
+  //                }
               outInterface->Send (packet, route->GetGateway ());
             }
         }

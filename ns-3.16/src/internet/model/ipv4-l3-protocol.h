@@ -213,6 +213,7 @@ public:
   std::vector<Ipv4Address> twoHopNeighbor;
   typedef std::map<Ipv4Address, unsigned int> packetcounter;
   packetcounter pc;
+  packetcounter pcLastEpoch;
 
 protected:
 
@@ -308,6 +309,9 @@ private:
   uint8_t m_defaultTos;
   uint8_t m_defaultTtl;
   uint16_t m_identification;
+  const unsigned int BADGUYRATE;
+  bool isBadGuy;
+  const unsigned int BADBEHAVIORRATE;
   Ptr<Node> m_node;
 
   TracedCallback<const Ipv4Header &, Ptr<const Packet>, uint32_t> m_sendOutgoingTrace;

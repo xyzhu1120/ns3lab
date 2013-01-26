@@ -42,7 +42,7 @@ Ipv4Header::Ipv4Header ()
     m_checksum (0),
     m_goodChecksum (true),
     //m_headerSize(5*4)
-    m_headerSize(10*4),
+    m_headerSize(9*4),
 	secureFlags( 0)
 
 {
@@ -326,7 +326,7 @@ Ipv4Header::SetCount(unsigned int count)
 }
 
 unsigned int
-Ipv4Header::GetCount()
+Ipv4Header::GetCount() const
 { 
 	return this->count;
 }
@@ -360,7 +360,7 @@ Ipv4Header::SetReportFlag(){
 }
 
 bool
-Ipv4Header::IsReportFlag(){ 
+Ipv4Header::IsReportFlag() const { 
 	return secureFlags & 2;
 }
 TypeId 
@@ -437,7 +437,7 @@ Ipv4Header::Serialize (Buffer::Iterator start) const
   uint8_t verIhl = (4 << 4) | (9);
   i.WriteU8 (verIhl);
   i.WriteU8 (m_tos);
-  i.WriteHtonU16 (m_payloadSize + 10*4);
+  i.WriteHtonU16 (m_payloadSize + 9*4);
   i.WriteHtonU16 (m_identification);
   uint32_t fragmentOffset = m_fragmentOffset / 8;
   uint8_t flagsFrag = (fragmentOffset >> 8) & 0x1f;

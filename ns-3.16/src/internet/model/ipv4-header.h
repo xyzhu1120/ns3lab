@@ -158,12 +158,12 @@ public:
   //modified by zxy
   void SetFrom(Ipv4Address n);
   void SetReportFlag();
-  bool IsReportFlag();
+  bool IsReportFlag() const;
  // void SetChecker(Ipv4Address n);
   void SetFromB(Ipv4Address n);
  // void SetCheckerB(Ipv4Address n);
   void SetCount(unsigned int);
-  unsigned int GetCount();
+  unsigned int GetCount() const;
   void update();
   /**
    * \returns the size of the payload in bytes
