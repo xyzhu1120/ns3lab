@@ -93,25 +93,30 @@ Ipv4L3Protocol::GetTypeId (void)
 }
 
 Ipv4L3Protocol::Ipv4L3Protocol()
-   :NumOfPacketsSentOut(0),
+   :NATUALERRORRATE(500),
+    NumOfPacketsSentOut(0),
 	UpperThreshold(10),
     m_identification (0),
-    BADGUYRATE(5)
-	BADBEHAVIORRATE(3)
+    BADGUYRATE(5),
+	BADBEHAVIORRATE(250),
+	CHECKRATE(100),
+	counterBad(0)
 {
   NS_LOG_FUNCTION (this);
+  isBadGuy = false;
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.2"));
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.3"));
   twoHopNeighbor.push_back(Ipv4Address("10.250.1.4"));
   int fd = open("/dev/random", O_RDONLY);
   unsigned int tmp;
   read(fd, &tmp, sizeof(tmp));
-  std::cout << "random " << tmp << std::endl;
-  tmp = tmp % BADGUYRATE;
-  if(tmp == 1){ 
-	  isBadGuy = true;
-	  std::cout << "I am bad guy" << std::endl;
-  }
+  //std::cout << "random " << tmp << std::endl;
+  srand(tmp);
+  //tmp = tmp % BADGUYRATE;
+  //if(tmp == 1){ 
+  //   // isBadGuy = true;
+  //    std::cout << "I am bad guy" << std::endl;
+  //}
 }
 
 Ipv4L3Protocol::~Ipv4L3Protocol ()
@@ -489,11 +494,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
         }
     }
 
-  if(isBadGuy){ 
-    std::cout << ipv4Interface->GetAddress(0).GetLocal() << "Drop packet!!" << std::endl;
-	return;
-  }
-
+  //Natural Drop
   Ipv4Header ipHeader;
   if (Node::ChecksumEnabled ())
     {
@@ -501,6 +502,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
     }
   packet->RemoveHeader (ipHeader);
 
+ // std::cout << "Receive from" << from << " source is" << ipHeader.GetSource() << " To " << ipHeader.GetDestination() << std::endl;
   // Trim any residual frame padding from underlying devices
   if (ipHeader.GetPayloadSize () < packet->GetSize ())
     {
@@ -513,12 +515,17 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
 //      return;
 //  }
   if(ipHeader.isEpochEndSignal() && ipHeader.GetDestination() == ipv4Interface->GetAddress(0).GetLocal()) {
-	  std::cout << "Receive the End signal" << ipHeader.GetSource() << std::endl;
 	  Ipv4Address source = ipHeader.GetSource() ;
 	  unsigned int count = pc[source];
 	  pc[source] = 0;
 	  Ptr<Packet> p = Create<Packet>();
 	  Ipv4Header epochhead;
+	  double rate = (double)counterBad / 10000;
+	  if(rate > 0.0 && rate > 0.004){ 
+		  std::cout << "Modify Error" << std::endl;
+	  }
+	  std::cout << "Receive the End signal from" << ipHeader.GetSource() <<" "<< counterBad << " " << count << " " << rate << std::endl;
+	  counterBad = 0;
 	  epochhead.SetReportFlag();
 	  epochhead.SetDestination(ipHeader.GetSource());
 	  epochhead.SetSource(ipv4Interface->GetAddress(0).GetLocal());
@@ -531,7 +538,37 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
 	  return;
    
   } 
-  std::cout << ipv4Interface->GetAddress(0).GetLocal() << " Receive Packet and Dest: "<< ipHeader.GetDestination() << " From is "<< ipHeader.GetFrom() << std::endl;
+  unsigned int fate;
+  
+  fate = rand() % 100;
+  if(fate < CHECKRATE){ 
+	  if(ipHeader.CheckCorrupt()){ 
+		  counterBad++;
+		  std::cout << "Find packet Corrupted" << counterBad << std::endl;
+		  return;
+	  }
+  }
+
+  ++pc[ipHeader.GetFrom()];
+
+  if(NATUALERRORRATE != 0 && !ipHeader.IsReportFlag() && !ipHeader.isEpochEndSignal()){ 
+    fate = rand() % NATUALERRORRATE;
+    if(fate == 1){ 
+		//ipHeader.Corrupt();
+        std::cout << ipv4Interface->GetAddress(0).GetLocal() << "Natual Drop packet" << std::endl;
+        return;
+    }
+  } 
+  if(isBadGuy && !ipHeader.IsReportFlag() && !ipHeader.isEpochEndSignal()){ 
+	int fate = rand() % BADBEHAVIORRATE;
+	if(fate == 1){
+		std::cout << ipv4Interface->GetAddress(0).GetLocal() << "Drop packet!!" << std::endl;
+		//ipHeader.Corrupt();
+		return;
+	} 
+  }
+
+//  std::cout << ipv4Interface->GetAddress(0).GetLocal() << " Receive Packet and Dest: "<< ipHeader.GetDestination() << " From is "<< ipHeader.GetFrom() << std::endl;
   if (!ipHeader.IsChecksumOk ()) 
     {
       NS_LOG_LOGIC ("Dropping received packet -- checksum not ok");
@@ -539,13 +576,16 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
       return;
     }
 
+//  if(fate == 0)
+//	  std::cout << "Lucky packet" << std::endl;
+
+
 //  std::cout <<"Checker: " << ipHeader.GetChecker() << std::endl;
 //  std::cout <<"Local: " <<  ipv4Interface->GetAddress(0).GetLocal()<< std::endl;
 //  if(ipHeader.GetChecker().IsEqual(ipv4Interface->GetAddress(0).GetLocal())){
 //    NS_LOG_INFO("I am Checker!");
 //  }
   
-  ++pc[ipHeader.GetFrom()];
   for (SocketList::iterator i = m_sockets.begin (); i != m_sockets.end (); ++i)
     {
       NS_LOG_LOGIC ("Forwarding to raw socket"); 
@@ -904,8 +944,6 @@ Ipv4L3Protocol::IpForward (Ptr<Ipv4Route> rtentry, Ptr<const Packet> p, const Ip
 {
   NS_LOG_FUNCTION (this << rtentry << p << header);
   NS_LOG_LOGIC ("Forwarding logic for node: " << m_node->GetId ());
-  if(const_cast<Ipv4Header&>(header).isEpochEndSignal())
-	  std::cout << "IpForward Receive the End signal" << std::endl;
   // Forwarding
   Ipv4Header ipHeader = header;
   Ptr<Packet> packet = p->Copy ();
@@ -933,8 +971,6 @@ Ipv4L3Protocol::IpForward (Ptr<Ipv4Route> rtentry, Ptr<const Packet> p, const Ip
 	  NumOfPacketsSentOut = 0;
   } */
   m_unicastForwardTrace (ipHeader, packet, interface);
-  if(const_cast<Ipv4Header&>(header).isEpochEndSignal())
-	  std::cout << "IpForward send the End signal" << std::endl;
   SendRealOut (rtentry, packet, ipHeader);
 }
 

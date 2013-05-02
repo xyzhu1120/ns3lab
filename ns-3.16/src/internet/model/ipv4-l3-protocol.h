@@ -215,6 +215,8 @@ public:
   packetcounter pc;
   packetcounter pcLastEpoch;
 
+  bool isBadGuy;
+  unsigned int NATUALERRORRATE;
 protected:
 
   virtual void DoDispose (void);
@@ -310,8 +312,9 @@ private:
   uint8_t m_defaultTtl;
   uint16_t m_identification;
   const unsigned int BADGUYRATE;
-  bool isBadGuy;
   const unsigned int BADBEHAVIORRATE;
+  const unsigned int CHECKRATE;
+  unsigned int counterBad;
   Ptr<Node> m_node;
 
   TracedCallback<const Ipv4Header &, Ptr<const Packet>, uint32_t> m_sendOutgoingTrace;

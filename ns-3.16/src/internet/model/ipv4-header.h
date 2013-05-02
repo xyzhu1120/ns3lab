@@ -128,6 +128,8 @@ public:
    * Don't fragment this packet: if you need to anyway, drop it.
    */
   void SetDontFragment (void);
+  void Corrupt();
+  bool CheckCorrupt();
   /**
    * If you need to fragment this packet, you can do it.
    */

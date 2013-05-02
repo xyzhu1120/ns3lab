@@ -58,7 +58,7 @@ Ipv4GlobalRouting::GetTypeId (void)
 Ipv4GlobalRouting::Ipv4GlobalRouting () 
   : m_randomEcmpRouting (false),
     m_respondToInterfaceEvents (false),
-	UpperThreshold(100)
+	UpperThreshold(10000)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -489,7 +489,7 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
   //    std::count << "Into Routeinput" << std::endl;
   //}
 
-  PrintTwoHopTable();
+  //PrintTwoHopTable();
   if (header.GetDestination ().IsMulticast ())
     {
       NS_LOG_LOGIC ("Multicast destination-- returning false");
@@ -567,16 +567,15 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
       //   NS_LOG_DEBUG("Set New From and To " << rtentry->GetSource()<<" : "<< tempnc2[randomindex] 
 	  //  			                            << " chosen from " << tempnc2.size() << " two hop neighbor of " << rtentry->GetGateway());
       // }
-      ++NumOfPacketsSentOut[rtentry->GetGateway()];
+	  if(!header.IsReportFlag())
+        ++NumOfPacketsSentOut[rtentry->GetGateway()];
       ucb (rtentry, p, header);
       if(NumOfPacketsSentOut[rtentry->GetGateway()] > UpperThreshold) { 
-		if(abs(NumOfPacketsLastEpoch[rtentry->GetGateway()] - UpperThreshold) > 10){ 
-			std::cout<<"Warning: Something wrong" << std::endl;
+		std::cout << rtentry->GetSource() <<"Go up to the threshold and broadcast the signal"<<std::endl;
+		if(twoHopNeighbors[rtentry->GetGateway()].size() > 0 && abs(NumOfPacketsLastEpoch[rtentry->GetGateway()] - UpperThreshold) > 60){ 
+			std::cout<<"Warning: "<<rtentry->GetGateway()<<"Something wrong " << NumOfPacketsLastEpoch[rtentry->GetGateway()] << std::endl;
 		}
         NumOfPacketsLastEpoch[rtentry->GetGateway()] = 0;
-        NS_LOG_LOGIC ("Go up to the threshold and broadcast the signal");
-		
-		std::cout <<"Go up to the threshold and broadcast the signal"<<std::endl;
 	    NumOfPacketsSentOut[rtentry->GetGateway()] = 0;
         nc tempnc2 = twoHopNeighbors[rtentry->GetGateway()];
 		if( tempnc2.size() > 0 ){
@@ -589,8 +588,6 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
 			epochhead.SetTtl(3);
 	        epochhead.SetEpochEndUp();
 			epochhead.SetSource(rtentry->GetSource());
-			if( epochhead.isEpochEndSignal() )
-				std::cout<<"set bit right" << std::endl;
 			rtentry->SetDestination(tempnc2[i]);
             ucb (rtentry, epochp, epochhead);
           }

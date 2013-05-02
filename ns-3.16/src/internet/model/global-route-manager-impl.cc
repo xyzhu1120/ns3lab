@@ -32,6 +32,7 @@
 #include "ns3/log.h"
 #include "ns3/node-list.h"
 #include "ns3/ipv4.h"
+#include "ns3/ipv4-l3-protocol.h"
 #include "ns3/ipv4-routing-protocol.h"
 #include "ns3/ipv4-list-routing.h"
 #include "ns3/mpi-interface.h"
@@ -1351,10 +1352,13 @@ GlobalRouteManagerImpl::SPFCalculate (Ipv4Address root)
        GlobalRoutingLSA *mylsa = m_lsdb->GetLSA(root);
        std::vector<Ipv4Address> twohopneicontainer;
        unsigned int lsanum = mylsa->GetNLinkRecords();
+	   int onehopcounter = 0;
+	   int twohopcounter = 0;
        for (unsigned int i = 0; i < lsanum; i++) {
        	/* code */
          GlobalRoutingLinkRecord *record = mylsa->GetLinkRecord(i);
          if(record->GetLinkType() == GlobalRoutingLinkRecord::PointToPoint){
+           Ipv4Address rootAddress = record->GetLinkData();
            Ipv4Address neiId = record->GetLinkId();
            GlobalRoutingLSA *neilsa = m_lsdb->GetLSA(neiId);
 		   Ipv4Address neiIp;
@@ -1373,8 +1377,12 @@ GlobalRouteManagerImpl::SPFCalculate (Ipv4Address root)
                  GlobalRoutingLinkRecord *twohopneirecord = twohopneilsa->GetLinkRecord(k);
          	     if(twohopneirecord->GetLinkType()  == GlobalRoutingLinkRecord::PointToPoint 
          	 			&& twohopneirecord->GetLinkId() == neiId){ 
+				   if(twohopneirecord->GetLinkData() == rootAddress)
+						break;
                    *stream->GetStream()<<"twoHopNei " << twohopneirecord->GetLinkData() << std::endl;
                    twohopneicontainer.push_back(twohopneirecord->GetLinkData()) ;
+				   twohopcounter++;
+				   break;
          	 	 }
          	   }
 			   if(neirecord->GetLinkId() == root) { 
@@ -1383,12 +1391,15 @@ GlobalRouteManagerImpl::SPFCalculate (Ipv4Address root)
          	 }
            }
            gr->AddTwoHopNei(neiIp, twohopneicontainer);
+		   onehopcounter++;
 		   gr->PrintTwoHopTable();
 		   twohopneicontainer.clear();
          }
        }
        *stream->GetStream()<<"SPFCalculate for " << root <<" " <<lsanum << std::endl;
        *stream->GetStream()<<*mylsa;
+	   std::cout << "root " << root << " " << onehopcounter << " " << twohopcounter << std::endl;
+	   break;
     } 
   } 
   

@@ -359,6 +359,18 @@ Ipv4Header::SetReportFlag(){
 	secureFlags |= 2;
 }
 
+void
+Ipv4Header::Corrupt()
+{ 
+	secureFlags |= 4;
+}
+
+bool
+Ipv4Header::CheckCorrupt()
+{ 
+	return secureFlags & 4;
+}
+
 bool
 Ipv4Header::IsReportFlag() const { 
 	return secureFlags & 2;
