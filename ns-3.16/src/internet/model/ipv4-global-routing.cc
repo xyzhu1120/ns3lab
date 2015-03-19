@@ -58,7 +58,7 @@ Ipv4GlobalRouting::GetTypeId (void)
 Ipv4GlobalRouting::Ipv4GlobalRouting () 
   : m_randomEcmpRouting (false),
     m_respondToInterfaceEvents (false),
-	UpperThreshold(10000)
+	UpperThreshold(6000)
 {
   NS_LOG_FUNCTION_NOARGS ();
 
@@ -566,13 +566,16 @@ Ipv4GlobalRouting::RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, P
       //   const_cast<Ipv4Header&>(header).SetCheckerB(tempnc2[randomindex]);
       //   NS_LOG_DEBUG("Set New From and To " << rtentry->GetSource()<<" : "<< tempnc2[randomindex] 
 	  //  			                            << " chosen from " << tempnc2.size() << " two hop neighbor of " << rtentry->GetGateway());
-      // }
+	  // }
+
+	  //the source node need to remember the packet sent out.
 	  if(!header.IsReportFlag())
         ++NumOfPacketsSentOut[rtentry->GetGateway()];
       ucb (rtentry, p, header);
+	  // broadcast the signal to inform the end of the epoch and check the last epoch
       if(NumOfPacketsSentOut[rtentry->GetGateway()] > UpperThreshold) { 
 		std::cout << rtentry->GetSource() <<"Go up to the threshold and broadcast the signal"<<std::endl;
-		if(twoHopNeighbors[rtentry->GetGateway()].size() > 0 && abs(NumOfPacketsLastEpoch[rtentry->GetGateway()] - UpperThreshold) > 60){ 
+		if(twoHopNeighbors[rtentry->GetGateway()].size() > 0 && abs(NumOfPacketsLastEpoch[rtentry->GetGateway()] - UpperThreshold) > 36){ 
 			std::cout<<"Warning: "<<rtentry->GetGateway()<<"Something wrong " << NumOfPacketsLastEpoch[rtentry->GetGateway()] << std::endl;
 		}
         NumOfPacketsLastEpoch[rtentry->GetGateway()] = 0;

@@ -98,7 +98,7 @@ Ipv4L3Protocol::Ipv4L3Protocol()
 	UpperThreshold(10),
     m_identification (0),
     BADGUYRATE(5),
-	BADBEHAVIORRATE(250),
+	BADBEHAVIORRATE(357),
 	CHECKRATE(100),
 	counterBad(0)
 {
@@ -514,6 +514,8 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
 //      m_routingProtocol->NumOfPacketsLastEpoch[ipHeader.GetFromB()] += ipHeader.GetCount();
 //      return;
 //  }
+
+//  check if the packet is the signal packet sent to this node. if it is, it means that this epoch ends.
   if(ipHeader.isEpochEndSignal() && ipHeader.GetDestination() == ipv4Interface->GetAddress(0).GetLocal()) {
 	  Ipv4Address source = ipHeader.GetSource() ;
 	  unsigned int count = pc[source];
@@ -526,6 +528,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
 	  }
 	  std::cout << "Receive the End signal from" << ipHeader.GetSource() <<" "<< counterBad << " " << count << " " << rate << std::endl;
 	  counterBad = 0;
+	  //create the new ack packet to report the result of the last epoch
 	  epochhead.SetReportFlag();
 	  epochhead.SetDestination(ipHeader.GetSource());
 	  epochhead.SetSource(ipv4Interface->GetAddress(0).GetLocal());
@@ -540,6 +543,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
   } 
   unsigned int fate;
   
+  //check if the packet is corrupted
   fate = rand() % 100;
   if(fate < CHECKRATE){ 
 	  if(ipHeader.CheckCorrupt()){ 
@@ -549,6 +553,7 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
 	  }
   }
 
+  //update the packet counter
   ++pc[ipHeader.GetFrom()];
 
   if(NATUALERRORRATE != 0 && !ipHeader.IsReportFlag() && !ipHeader.isEpochEndSignal()){ 
@@ -559,6 +564,8 @@ Ipv4L3Protocol::Receive ( Ptr<NetDevice> device, Ptr<const Packet> p, uint16_t p
         return;
     }
   } 
+
+  //bad node drop packet
   if(isBadGuy && !ipHeader.IsReportFlag() && !ipHeader.isEpochEndSignal()){ 
 	int fate = rand() % BADBEHAVIORRATE;
 	if(fate == 1){
